@@ -7,6 +7,7 @@ require 'sinatra'
 REGEXP = %r|^http://www\.aozora\.gr\.jp/cards/\d+/files/[\d_]+\.html$|
 
 get '/json/*' do
+	halt 403, 'forbidden' if !request.referer[%r|^#{url('/')}|]
 	url = params[:splat].join('')
 	return 'not aozora url' unless url[REGEXP]
 	src = open(url).read.toutf8
