@@ -1,15 +1,14 @@
-
-var Player = function(output) {
+var Player = function(output, option) {
 	this.output = output
 	this.page = []
 	this.json = null
 	this.offset = 0
 	this.paused = true
-	this.onload = function() {}
-	this.onupdate = function() {}
-	this.onended = function() {}
 	this.textLoaded = false
 	this.wavLoaded = false
+    	if(option) {
+		for(var i in option) { this[i] = option[i] }
+	}
 }
 Player.prototype = {
 	load : function(source) {
@@ -30,50 +29,56 @@ Player.prototype = {
 					}
 				}
 				that.textLoaded = true
-				if(that.textLoaded && that.wavLoaded && that.paused) { that.onload(that.json) ; that.play() }
+				if(that.textLoaded && that.wavLoaded) { that.onload(that.json) }
 			}
 		})
 		this.wav = new WavFile(source.audio, function(wav) {
 			wav.beatDetect()
 			that.wavLoaded = true
-			if(that.textLoaded && that.wavLoaded && that.paused) { that.onload(that.json) ; that.play() }
+			if(that.textLoaded && that.wavLoaded) { that.onload(that.json) }
 		})
 	},
 	play : function() {
+		this.paused = false
+		this.repeat()
+	},
+	repeat : function() {
 		if(this.paused) return
 		var that = this
+		if(!this.page[this.offset]) {
+			this.pause()
+			this.onended()
+			return
+		}
 		if(this.next) {
-		    	window.audio = this.next.audio
-			this.next.audio.play()
-			this.render()
+		    	window.audio = this.next
+			this.current = this.next
+			this.current.play()
+			var times = Math.floor(this.current.duration * 136/60)
+			for(var i = 0; i < times; i++) {
+				setTimeout(function() { that.offset++ ;that.render() }, 220*i)
+			}
 			setTimeout(function() { that.prepare() }, 0)
 		} else {
 		    	this.prepare()
-			this.play()
+			this.repeat()
 		}
-		this.offset++
 	},
 	prepare : function() {
 		var that = this
         	var samples = this.wav.randomBeats(4)
         	var audio = this.wav.binaryAudio(samples)
-
-        	var sampleVars = []
-        	for(var i = 0; i < samples.length; i++) {
-        		sampleVars.push(samples.charCodeAt(i) & 0xff)
-        	}
-
         	audio.addEventListener('ended', function(e) {
-        		that.play()
+        		that.repeat()
         		setTimeout(function() {
         			e.target.parentNode.removeChild(e.target)
         		}, 0)
         	}, false)
-
-        	this.next = { audio: audio, vars: sampleVars }
+        	this.next = audio
 	},
 	pause : function() {
 		this.paused = true
+		this.current.pause()
 	},
 	render : function() {
 		this.onupdate()
@@ -84,16 +89,16 @@ Player.prototype = {
 				.replace(/[\r\n]+$/g,"")
 				.replace(/(\r\n|[\r\n])/g,"<br>")
 		)
-		var body_w = document.body.offsetWidth
-		var body_h = document.body.offsetHeight
+		var body_w = document.body.clientWidth
+		var body_h = document.body.clientHeight
 		var output_w = this.output.attr("offsetWidth")
 		var new_fs = Math.ceil((body_w/output_w) * 9)
 		if(new_fs > 10000) { return }
-		this.output.css({fontSize:new_fs+"px", display:"block"})
+		this.output.css({fontSize:new_fs+"px", display:"table-cell", height:body_h, width:body_w})
 		var output_h = this.output.attr("offsetHeight")
 		if(output_h > body_h) {
 			var new_fs = Math.ceil((body_h/output_h) * new_fs * 0.85)
-			this.output.css("fontSize", new_fs + "px")
+			this.output.css({fontSize:new_fs + "px"})
 		}
 	},
 	seek : function(offset) {
