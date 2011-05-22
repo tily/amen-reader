@@ -4,7 +4,7 @@ require 'rubygems'
 require 'json'
 require 'sinatra'
 
-REGEXP = %r|^http://www\.aozora\.gr\.jp/cards/\d+/files/\d+_\d+\.html$|
+REGEXP = %r|^http://www\.aozora\.gr\.jp/cards/\d+/files/[\d_]+\.html$|
 
 get '/json/*' do
 	url = params[:splat].join('')

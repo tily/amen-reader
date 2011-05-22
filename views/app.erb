@@ -1,121 +1,55 @@
+<!DOCTYPE html>
 <html>
 <head>
-<title></title>
-<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js"></script>
-<script type="text/javascript" src="/tiny_segmenter-0.1.js" charset="UTF-8"></script>
-<script type="text/javascript" src="/splitter.js" charset="UTF-8"></script>
-<script type="text/javascript" src="/wavfile.js"></script>
-<script type="text/javascript" src="/amen.js"></script>
-<script>
-var SlideShow = function(option) {
-	this.splitter = new TextSplitter
-	this.speed = 50;
-	this.output = $("#output")
-	if(option){
-		for(var i in option){this[i] = option[i]}
-	}
-}
-SlideShow.prototype = {
-	load : function(text) {
-		var splitter = new TextSplitter({punctuation:true, brace:false})
-		var sentences = splitter.split(text)
-		var count = 0
-		this.page = []
-		this.eos = {}
-		this.offset = 0
-		for(var i = 0; i < sentences.length; i++) {
-			var pos = sentences[i].pos
-			var arr = sentences[i].arr
-			for(var j = 0; j < pos.length; j++) {
-				var text = arr.slice(pos[j][0], pos[j][1]).join("")
-				this.page.push(text)
-				count += 1
-			}
-			this.eos[count] = "eos"
-		}
-		$("#progress").html((this.offset+1) + "/" + this.page.length) // パーセント表示にしたい
-	},
-	start : function() {
-		var that = this
-	        // var time = this.page[this.offset].length*(101-this.speed)/2)
-		var time = this.page[this.offset].length*(101-this.speed)
-		if(this.eos[this.offset+1] == "eos") { time += 800 ; console.log(this.page[this.offset])}
-		if(!this.page[this.offset]){
-			this.offset = this.page.length-1
-		}
-		this.render()
-		this.timeoutID = setTimeout(function() { that.start() }, time)
-		this.offset++
-		this.isPlaying = true
-		if(!this.page[this.offset]){
-			this.stop()
-		}
-	},
-	render : function() {
-		$("#progress").html(Math.floor((this.offset+1)/this.page.length) + "/100") // パーセント表示にしたい
-		this.output.css({fontSize: "10px", display:"inline"})
-		this.output.html(
-			this.page[this.offset]
-				.replace(/^[\r\n]+/g,"")
-				.replace(/[\r\n]+$/g,"")
-				.replace(/(\r\n|[\r\n])/g,"<br>")
-		)
-		var body_w = document.body.offsetWidth
-		var body_h = document.body.offsetHeight
-		var output_w = this.output.attr("offsetWidth")
-		var new_fs = Math.ceil((body_w/output_w) * 9)
-		if(new_fs > 10000) { return }
-		this.output.css({fontSize:new_fs+"px", display:"block"})
-		var output_h = this.output.attr("offsetHeight")
-		if(output_h > body_h) {
-			var new_fs = Math.ceil((body_h/output_h) * new_fs * 0.85)
-			this.output.css("fontSize", new_fs + "px")
-		}
-	},
-	stop : function() {
-		clearTimeout(this.timeoutID)
-		this.isPlaying = false
-	},
-	toggle : function() {
-		if(this.isPlaying) {
-			this.stop()
-		} else {
-			this.start()
-		}
-	},
-	forward : function() {
-		var that = this
-		this.offset++
-		this.render()
-		setTimeout(function() { that.offset++; that.render() }, 400)
-		//setTimeout(function() { that.forward() }, 200)
-	},
-	back : function(toFirst) {
-		var pos = toFirst ? 0 : this.offset - 2
-		this.offset = pos
-		if(this.offset < 0) { this.offset = 0 }
-		$("#progress").html(Math.floor((this.offset+1)/this.page.length)) // パーセント表示にしたい
-		this.render()
-	}
-}
-</script>
+<title>Amen Reader</title>
+<script type="text/javascript" src="/jquery-1.4.4.min.js"            charset="UTF-8"></script>
+<script type="text/javascript" src="/jquery-ui-1.8.10.custom.min.js" charset="UTF-8"></script>
+<script type="text/javascript" src="/tiny_segmenter-0.1.js"          charset="UTF-8"></script>
+<script type="text/javascript" src="/splitter.js"                    charset="UTF-8"></script>
+<script type="text/javascript" src="/wavfile.js"                     charset="UTF-8"></script>
+<script type="text/javascript" src="/player.js"                      charset="UTF-8"></script>
+<!--<link rel="stylesheet" type="text/css" href="/jquery-ui-1.8.10.custom.css" media="all">-->
 </head>
 <body style="height:100%">
-<span id="progress"></span>
-<br />
+<div id="control"><p id="button">▶</p></div>
+<div id="slider"></div>
 <center>
 <div id="output"></div>
 </center>
-</body>
 <script>
-var url = '<%= @url %>'
-var slideShow = new SlideShow()
-$.ajax({
-	url : '/json/' + url,
-	dataType: 'json',
-	success: function(json) {
-		slideShow.load(json.text)
+$(function() {
+	var play = "▶"
+	var pause = "||"
+	var player = new Player($("#output"))
+	player.load({audio: "/amen_lq.wav", text:"<%= @url %>"})
+
+	player.onload = function(json) {
+		document.title = [json.author, " ", json.title, " - ", document.title].join("")
+		player.render()
+		$("#slider").slider({
+			slide : function(event, ui) {
+				player.offset = Math.floor(ui.value/100 * player.page.length)
+				player.render()
+			}
+		})
+		$("#button").click(function() {
+			if (player.paused) {
+				player.paused = false
+				player.play()
+				$("#button").html(pause)
+			} else {
+				player.paused = true
+				$("#button").html(play)
+			}
+		})
+	}
+	player.onupdate = function() {
+		$("#slider").slider("value", player.offset / player.page.length * 100)
+	}
+	player.onended = function() {
+		$("#button").html(play)
 	}
 })
 </script>
+</body>
 </html>

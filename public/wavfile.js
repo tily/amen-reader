@@ -1,3 +1,4 @@
+// copy of http://hitode909.appspot.com/amen/wavfile.js
 // see glitchmonkey
 function load_binary_resource(url, ok) {
     var req = new XMLHttpRequest();
