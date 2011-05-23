@@ -54,10 +54,8 @@ Player.prototype = {
 		    	window.audio = this.next
 			this.current = this.next
 			this.current.play()
-			var times = Math.floor(this.current.duration * 136/60)
-			for(var i = 0; i < times; i++) {
-				setTimeout(function() { that.offset++ ;that.render() }, 220*i)
-			}
+			this.offset++
+			this.render()
 			setTimeout(function() { that.prepare() }, 0)
 		} else {
 		    	this.prepare()
@@ -66,7 +64,7 @@ Player.prototype = {
 	},
 	prepare : function() {
 		var that = this
-        	var samples = this.wav.randomBeats(4)
+        	var samples = this.wav.randomBeats(1)
         	var audio = this.wav.binaryAudio(samples)
         	audio.addEventListener('ended', function(e) {
         		that.repeat()
