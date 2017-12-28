@@ -1,0 +1,9 @@
+version: "3"
+services:
+  app:
+    build: .
+    volumes:
+      - .:/usr/local/app
+    ports:
+      - 8080:8080
+    command: rackup -p 8080 -o 0.0.0.0
